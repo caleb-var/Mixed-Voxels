@@ -1,0 +1,14 @@
+import os
+
+# Attempt to use godot-cpp's build script if available
+if os.path.exists('../../godot-cpp/SConstruct'):
+    env = SConscript('../../godot-cpp/SConstruct', exports='env')
+else:
+    env = Environment()
+
+env.Append(CPPPATH=['src'])
+
+sources = Glob('src/*.cpp')
+lib_name = 'bin/libbinary_greedy_mesher'
+
+env.SharedLibrary(lib_name, sources)

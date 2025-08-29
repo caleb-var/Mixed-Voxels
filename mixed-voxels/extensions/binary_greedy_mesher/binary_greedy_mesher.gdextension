@@ -1,0 +1,6 @@
+[configuration]
+entry_symbol="binary_greedy_mesher_library_init"
+
+[libraries]
+linux.debug.x86_64="bin/libbinary_greedy_mesher.linux.template_debug.x86_64.so"
+linux.release.x86_64="bin/libbinary_greedy_mesher.linux.template_release.x86_64.so"
