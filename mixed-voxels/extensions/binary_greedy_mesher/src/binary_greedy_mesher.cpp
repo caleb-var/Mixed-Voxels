@@ -167,6 +167,71 @@ Ref<ArrayMesh> BinaryGreedyMesher::build_mesh(const PackedByteArray &voxels, con
     return mesh;
 }
 
+BinaryGreedyMesher::BinaryGreedyMesher() {
+    worker = std::thread(&BinaryGreedyMesher::thread_main, this);
+}
+
+BinaryGreedyMesher::~BinaryGreedyMesher() {
+    stop();
+}
+
+void BinaryGreedyMesher::thread_main() {
+    while (true) {
+        Job job;
+        {
+            std::unique_lock<std::mutex> lock(jobs_mutex);
+            jobs_cv.wait(lock, [this]() { return stop_worker || !jobs.empty(); });
+            if (stop_worker && jobs.empty()) {
+                return;
+            }
+            job = jobs.front();
+            jobs.pop_front();
+        }
+        Ref<ArrayMesh> mesh = build_mesh(job.voxels, job.size, job.lod);
+        Result res{mesh, job.chunk};
+        {
+            std::lock_guard<std::mutex> lock(results_mutex);
+            results.push_back(res);
+        }
+    }
+}
+
+void BinaryGreedyMesher::schedule_mesh(const PackedByteArray &voxels, const Vector3i &size, int lod, Variant chunk) {
+    Job job{voxels, size, lod, chunk};
+    {
+        std::lock_guard<std::mutex> lock(jobs_mutex);
+        jobs.push_back(job);
+    }
+    jobs_cv.notify_one();
+}
+
+Dictionary BinaryGreedyMesher::pop_completed() {
+    std::lock_guard<std::mutex> lock(results_mutex);
+    Dictionary dict;
+    if (results.empty()) {
+        return dict;
+    }
+    Result res = results.front();
+    results.pop_front();
+    dict["mesh"] = res.mesh;
+    dict["chunk"] = res.chunk;
+    return dict;
+}
+
+void BinaryGreedyMesher::stop() {
+    {
+        std::lock_guard<std::mutex> lock(jobs_mutex);
+        stop_worker = true;
+    }
+    jobs_cv.notify_all();
+    if (worker.joinable()) {
+        worker.join();
+    }
+}
+
 void BinaryGreedyMesher::_bind_methods() {
     ClassDB::bind_method(D_METHOD("build_mesh", "voxels", "size", "lod"), &BinaryGreedyMesher::build_mesh, DEFVAL(0));
+    ClassDB::bind_method(D_METHOD("schedule_mesh", "voxels", "size", "lod", "chunk"), &BinaryGreedyMesher::schedule_mesh, DEFVAL(0), DEFVAL(Variant()));
+    ClassDB::bind_method(D_METHOD("pop_completed"), &BinaryGreedyMesher::pop_completed);
+    ClassDB::bind_method(D_METHOD("stop"), &BinaryGreedyMesher::stop);
 }

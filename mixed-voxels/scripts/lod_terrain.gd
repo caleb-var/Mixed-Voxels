@@ -25,7 +25,6 @@ extends Node3D
 
 @onready var player: Node3D = get_node_or_null(player_path)
 
-var mesher := BinaryGreedyMesher.new()
 var noise := FastNoiseLite.new()
 
 var _wire_shader := Shader.new()
@@ -37,6 +36,12 @@ var chunks: Array = []
 ## Last observed chunk-space centre for each LOD. Used to detect when
 ## to shift clipmap rings.
 var last_centers: Array = []
+
+## Background mesh builder provided by the C++ extension.
+var _mesher := BinaryGreedyMesher.new()
+
+## Limit how many finished meshes are swapped per frame.
+@export var rebuild_frame_budget: int = 4
 
 ## Holds voxel data and mesh instance for a single chunk.
 class ChunkData:
@@ -58,11 +63,13 @@ func _ready() -> void:
     for i in range(lod_count):
         chunks.append({})
         last_centers.append(Vector3i(1_000_000, 1_000_000, 1_000_000))
+
     # Initial generation around the player.
     _update_chunks(true)
 
 func _process(_delta: float) -> void:
     _update_chunks()
+    _apply_completed_jobs()
 
 func _update_chunks(force: bool = false) -> void:
     if player == null:
@@ -110,6 +117,22 @@ func _update_chunks(force: bool = false) -> void:
             chunks[lod] = lod_chunks
             last_centers[lod] = center
 
+func _apply_completed_jobs() -> void:
+    var processed := 0
+    while processed < rebuild_frame_budget:
+        var res = _mesher.pop_completed()
+        if res.is_empty():
+            break
+        if res.has("chunk") and res.has("mesh") and is_instance_valid(res.chunk.mesh):
+            res.chunk.mesh.mesh = res.mesh
+        processed += 1
+
+func _schedule_job(vox: PackedByteArray, size: Vector3i, scale: int, chunk: ChunkData) -> void:
+    _mesher.schedule_mesh(vox, size, scale, chunk)
+
+func _exit_tree() -> void:
+    _mesher.stop()
+
 func _make_bounds_mesh(size: Vector3) -> Mesh:
     var m := ImmediateMesh.new()
     m.surface_begin(Mesh.PRIMITIVE_LINES)
@@ -155,9 +178,7 @@ func _create_chunk(coord: Vector3i, dim: int, voxel_scale: int, lod: int) -> Chu
                 var idx := x + side * (y + side * z)
                 vox[idx] = world_y < height ? 1 : 0
 
-    var mesh := mesher.build_mesh(vox, Vector3i(side, side, side), voxel_scale)
     var inst := MeshInstance3D.new()
-    inst.mesh = mesh
     if show_wireframe:
         inst.material_override = _voxel_wire_material
     inst.position = Vector3(
@@ -180,5 +201,6 @@ func _create_chunk(coord: Vector3i, dim: int, voxel_scale: int, lod: int) -> Chu
     data.materials = vox
     data.mesh = inst
     data.bounds = bounds_inst
+    _schedule_job(vox, Vector3i(side, side, side), voxel_scale, data)
     return data
 
