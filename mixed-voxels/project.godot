@@ -13,3 +13,13 @@ config_version=5
 config/name="Mixed Voxels"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
+run/main_scene="res://scenes/voxel_test.tscn"
+
+[input]
+
+move_forward={"deadzone":0.5,"events":[{"type":"key","keycode":87,"physical_keycode":87}]}
+move_backward={"deadzone":0.5,"events":[{"type":"key","keycode":83,"physical_keycode":83}]}
+move_left={"deadzone":0.5,"events":[{"type":"key","keycode":65,"physical_keycode":65}]}
+move_right={"deadzone":0.5,"events":[{"type":"key","keycode":68,"physical_keycode":68}]}
+move_up={"deadzone":0.5,"events":[{"type":"key","keycode":32,"physical_keycode":32}]}
+move_down={"deadzone":0.5,"events":[{"type":"key","keycode":67,"physical_keycode":67}]}
