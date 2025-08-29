@@ -19,10 +19,18 @@ extends Node3D
 ## Supply one size per LOD; the last value is reused if more levels are requested.
 @export var lod_chunk_dims: PackedInt32Array = [32, 64, 64, 64]
 
+## Debug visualisations.
+@export var show_chunk_bounds: bool = false
+@export var show_wireframe: bool = false
+
 @onready var player: Node3D = get_node_or_null(player_path)
 
 var mesher := BinaryGreedyMesher.new()
 var noise := FastNoiseLite.new()
+
+var _wire_shader := Shader.new()
+var _voxel_wire_material := ShaderMaterial.new()
+var _bounds_material := ShaderMaterial.new()
 
 ## Per‑LOD dictionaries of existing chunks.
 var chunks: Array = []
@@ -36,8 +44,15 @@ class ChunkData:
     var materials: PackedByteArray
     ## Rendered mesh instance placed in the scene.
     var mesh: MeshInstance3D
+    ## Optional mesh outlining the chunk bounds.
+    var bounds: MeshInstance3D
 
 func _ready() -> void:
+    _wire_shader.code = "shader_type spatial; render_mode unshaded, wireframe;"
+    _voxel_wire_material.shader = _wire_shader
+    _bounds_material.shader = _wire_shader
+    _bounds_material.set_shader_parameter("albedo", Color.RED)
+
     noise.seed = randi()
     # Prepare per‑LOD dictionaries and sentinel centres.
     for i in range(lod_count):
@@ -88,10 +103,37 @@ func _update_chunks(force: bool = false) -> void:
                 var dz := abs(k.z - center.z)
                 if dx > remove_radius or dy > remove_radius or dz > remove_radius:
                     lod_chunks[k].mesh.queue_free()
+                    if lod_chunks[k].bounds:
+                        lod_chunks[k].bounds.queue_free()
                     lod_chunks.erase(k)
 
             chunks[lod] = lod_chunks
             last_centers[lod] = center
+
+func _make_bounds_mesh(size: Vector3) -> Mesh:
+    var m := ImmediateMesh.new()
+    m.surface_begin(Mesh.PRIMITIVE_LINES)
+    var x := size.x
+    var y := size.y
+    var z := size.z
+    var pts := [
+        Vector3(0, 0, 0), Vector3(x, 0, 0),
+        Vector3(x, 0, 0), Vector3(x, y, 0),
+        Vector3(x, y, 0), Vector3(0, y, 0),
+        Vector3(0, y, 0), Vector3(0, 0, 0),
+        Vector3(0, 0, z), Vector3(x, 0, z),
+        Vector3(x, 0, z), Vector3(x, y, z),
+        Vector3(x, y, z), Vector3(0, y, z),
+        Vector3(0, y, z), Vector3(0, 0, z),
+        Vector3(0, 0, 0), Vector3(0, 0, z),
+        Vector3(x, 0, 0), Vector3(x, 0, z),
+        Vector3(x, y, 0), Vector3(x, y, z),
+        Vector3(0, y, 0), Vector3(0, y, z)
+    ]
+    for p in pts:
+        m.surface_add_vertex(p)
+    m.surface_end()
+    return m
 
 func _create_chunk(coord: Vector3i, dim: int, voxel_scale: int, lod: int) -> ChunkData:
     # Duplicate border voxels to create skirts that hide seams.
@@ -116,6 +158,8 @@ func _create_chunk(coord: Vector3i, dim: int, voxel_scale: int, lod: int) -> Chu
     var mesh := mesher.build_mesh(vox, Vector3i(side, side, side), voxel_scale)
     var inst := MeshInstance3D.new()
     inst.mesh = mesh
+    if show_wireframe:
+        inst.material_override = _voxel_wire_material
     inst.position = Vector3(
         coord.x * dim * voxel_scale,
         coord.y * dim * voxel_scale,
@@ -123,8 +167,18 @@ func _create_chunk(coord: Vector3i, dim: int, voxel_scale: int, lod: int) -> Chu
     )
     add_child(inst)
 
+    var bounds_inst: MeshInstance3D = null
+    if show_chunk_bounds:
+        var world_size := Vector3(dim * voxel_scale, dim * voxel_scale, dim * voxel_scale)
+        bounds_inst = MeshInstance3D.new()
+        bounds_inst.mesh = _make_bounds_mesh(world_size)
+        bounds_inst.position = inst.position
+        bounds_inst.material_override = _bounds_material
+        add_child(bounds_inst)
+
     var data := ChunkData.new()
     data.materials = vox
     data.mesh = inst
+    data.bounds = bounds_inst
     return data
 
