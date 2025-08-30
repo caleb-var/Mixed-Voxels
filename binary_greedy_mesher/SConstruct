@@ -1,0 +1,36 @@
+import os
+import sys
+
+env = SConscript("../deps/godot-cpp/SConstruct")
+env.Append(CPPPATH=["src/", "../deps/"])
+
+sources = Glob('src/*.cpp')
+sources += Glob('../deps/*.cpp')
+sources += Glob('../deps/*.c')
+
+
+if env["platform"] == "macos":
+    library = env.SharedLibrary(
+        "../addons/bgm/libbgm_extension.{}.{}.framework/libbgm_extension.{}.{}".format(
+            env["platform"], env["target"], env["platform"], env["target"]
+        ),
+        source=sources,
+    )
+elif env["platform"] == "ios":
+    if env["ios_simulator"]:
+        library = env.StaticLibrary(
+            "../addons/bgm/libbgm_extension.{}.{}.simulator.a".format(env["platform"], env["target"]),
+            source=sources,
+        )
+    else:
+        library = env.StaticLibrary(
+            "../addons/bgm/libbgm_extension.{}.{}.a".format(env["platform"], env["target"]),
+            source=sources,
+        )
+else:
+    library = env.SharedLibrary(
+        "../addons/bgm/libbgm_extension{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
+        source=sources,
+    )
+
+Default(library)

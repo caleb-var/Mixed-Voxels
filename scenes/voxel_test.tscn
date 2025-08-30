@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://0bt58f3cev7m"]
+
+[ext_resource type="Script" uid="uid://dfhvqblfd6hna" path="res://scripts/lod_terrain.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2"]
+
+[node name="VoxelTest" type="Node3D"]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 0, 0)
+
+[node name="LodTerrain" type="Node3D" parent="."]
+script = ExtResource("1")
+player_path = NodePath("../Player")
+
+[node name="Player" parent="." instance=ExtResource("2")]
