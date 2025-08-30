@@ -8,7 +8,8 @@
 
 using namespace godot;
 
-class BinaryGreedyMesher : public RefCounted {
+class BinaryGreedyMesher : 
+public RefCounted {
     GDCLASS(BinaryGreedyMesher, RefCounted);
 
 protected:

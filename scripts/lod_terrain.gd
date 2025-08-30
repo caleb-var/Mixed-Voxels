@@ -98,9 +98,9 @@ func _update_chunks(force: bool = false) -> void:
 			# Remove chunks that moved outside the cube with hysteresis margin.
 			var remove_radius := int(ceil(chunk_radius * (1.0 + hysteresis_margin)))
 			for k in lod_chunks.keys():
-				var dx := abs(k.x - center.x)
-				var dy := abs(k.y - center.y)
-				var dz := abs(k.z - center.z)
+				var dx = abs(k.x - center.x)
+				var dy = abs(k.y - center.y)
+				var dz = abs(k.z - center.z)
 				if dx > remove_radius or dy > remove_radius or dz > remove_radius:
 					lod_chunks[k].mesh.queue_free()
 					if lod_chunks[k].bounds:
