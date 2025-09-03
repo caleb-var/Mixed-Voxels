@@ -1,8 +1,7 @@
-[gd_scene load_steps=4 format=3 uid="uid://0bt58f3cev7m"]
+[gd_scene load_steps=3 format=3 uid="uid://0bt58f3cev7m"]
 
 [ext_resource type="Script" uid="uid://dfhvqblfd6hna" path="res://scripts/lod_terrain.gd" id="1"]
 [ext_resource type="PackedScene" uid="uid://cqyqat2pq3e2e" path="res://scenes/player.tscn" id="2"]
-[ext_resource type="Script" uid="uid://piu5e3a0ggg0" path="res://scenes/voxel_test.gd" id="2_1gnmp"]
 
 [node name="VoxelTest" type="Node3D"]
 
@@ -14,12 +13,6 @@ script = ExtResource("1")
 player_path = NodePath("..")
 chunk_radius = 1
 lod_count = 2
-lod_chunk_dims = [1, 1]
-show_chunk_bounds = true
-show_wireframe = true
-
-[node name="VoxelTest" type="Node3D" parent="."]
-script = ExtResource("2_1gnmp")
-player_path = NodePath("..")
+chunk_dim = 16
 
 [node name="Player" parent="." instance=ExtResource("2")]
