@@ -1,25 +1,14 @@
 extends Node3D
 
-## Basic clipmap-based LOD terrain generator.
-##
-## Chunks are generated in concentric rings around a player position.
-## Each subsequent ring doubles the voxel size (`1, 2, 4, 8, ...`),
-## allowing an arbitrary number of LOD tiers. Rings only shift when the
-## player crosses a chunk boundary. Border voxels are duplicated to
-## create skirts that hide cracks between neighbouring LOD meshes.
-
 @export var player_path: NodePath
+
 ## Number of chunks to generate around the player for each LOD ring.
 @export var chunk_radius: int = 2
 ## Total number of LOD levels. Add as many as desired.
 @export var lod_count: int = 4
 ## Extra range before removing far chunks to reduce popping.
 @export var hysteresis_margin: float = 0.2
-## Chunk dimensions per LOD (in voxels).
-## Supply one size per LOD; the last value is reused if more levels are requested.
-@export var lod_chunk_dims: PackedInt32Array = [32, 64, 64, 64]
 
-## Debug visualisations.
 @export var show_chunk_bounds: bool = false
 @export var show_wireframe: bool = false
 
@@ -165,7 +154,7 @@ func _create_chunk(coord: Vector3i, dim: int, voxel_scale: int, lod: int) -> Chu
 		coord.y * dim * voxel_scale,
 		coord.z * dim * voxel_scale
 	)
-	add_child(inst)
+	#add_child(inst)
 
 	var bounds_inst: MeshInstance3D = null
 	if show_chunk_bounds:

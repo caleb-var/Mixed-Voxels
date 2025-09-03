@@ -138,6 +138,9 @@ Ref<ArrayMesh> BinaryGreedyMesher::build_mesh(const PackedByteArray &voxels, con
             }
         }
     }
+    if (vertices.empty() || indices.empty()) {
+        return mesh;
+    }
 
     PackedVector3Array pvertices;
     pvertices.resize(vertices.size());
